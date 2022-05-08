@@ -151,7 +151,9 @@ class Logger extends AbstractLogger implements LoggerInterface
      */
     public function truncateStream(int $size = 0): void
     {
-        ftruncate($this->stream, $size);
+        if (null !== $this->stream) {
+            ftruncate($this->stream, $size);
+        }
     }
 
     /**
