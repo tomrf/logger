@@ -28,11 +28,6 @@ class Logger extends AbstractLogger implements LoggerInterface
     ];
 
     /**
-     * Log file path/filename.
-     */
-    private ?string $filename = null;
-
-    /**
      * Optional log message formatter.
      *
      * @var null|callable
@@ -54,26 +49,34 @@ class Logger extends AbstractLogger implements LoggerInterface
     private $stream;
 
     public function __construct(
-        ?string $filename = null,
-        int $permissions = 0600,
+        mixed $stream = null,
     ) {
-        if (null !== $filename) {
-            $this->setFilename($filename, $permissions);
+        if (null === $stream) {
+            return;
         }
+
+        $this->setStream($stream);
     }
 
-    /**
-     * Set log file filename/path. If the file does not exist it will be
-     * created and permissions set via chmod(). Can be set to null to disable
-     * logging to file.
-     */
-    public function setFilename(string|null $filename, int $permissions = 0600): void
+    public function setStream(mixed $stream): void
     {
-        $this->filename = $filename;
-
-        if (null !== $this->filename) {
-            $this->createFileIfNotExists($this->filename, $permissions);
+        // assert that $stream is a resource
+        if (!\is_resource($stream)) {
+            throw new InvalidArgumentException(
+                'Argument 1 passed to '.__METHOD__.' must be of type resource, '.
+                \gettype($stream).' given'
+            );
         }
+
+        // assert that $stream is a stream resource
+        if ('stream' !== get_resource_type($stream)) {
+            throw new InvalidArgumentException(
+                'Argument 1 passed to '.__METHOD__.' must be a file stream, '.
+                get_resource_type($stream).' given'
+            );
+        }
+
+        $this->stream = $stream;
     }
 
     /**
@@ -119,19 +122,21 @@ class Logger extends AbstractLogger implements LoggerInterface
             );
         }
 
+        $output = sprintf("[%s] (%s) %s\n", date('c'), $level, $message);
+
         if (null !== $this->formatter) {
             $output = $this->getStringValue(
                 \call_user_func($this->formatter, $level, $message)
             );
-        } else {
-            $output = sprintf("[%s] (%s) %s\n", date('c'), $level, $message);
         }
 
         if (null !== $this->outputter) {
             \call_user_func($this->outputter, $this->stream, $output);
-        } elseif (null !== $this->filename) {
-            $this->writeToFile($output);
+
+            return;
         }
+
+        $this->writeToStream($output);
     }
 
     /**
@@ -157,59 +162,25 @@ class Logger extends AbstractLogger implements LoggerInterface
     }
 
     /**
-     * Create file with correct permissions, if it does not already exist.
+     * Write to stream if it is open.
+     *
+     * Returns number of bytes written, or -1 on error.
      *
      * @throws RuntimeException
      */
-    private function createFileIfNotExists(string $filename, int $permissions): void
+    private function writeToStream(string $data): int
     {
-        if (file_exists($filename)) {
-            return;
+        if (null === $this->stream) {
+            return 0;
         }
 
-        if (false === touch($filename)) {
-            throw new RuntimeException(sprintf(
-                'Unable to create log file "%s": touch() failed',
-                $filename
-            ));
+        $bytes = fwrite($this->stream, $data);
+
+        if (false === $bytes) {
+            return -1;
         }
 
-        if (false === chmod($filename, $permissions)) {
-            throw new RuntimeException(sprintf(
-                'Unable to set permissions for log file "%s": chmod() failed',
-                $filename
-            ));
-        }
-    }
-
-    /**
-     * Write to log file.
-     *
-     * @throws RuntimeException
-     */
-    private function writeToFile(string $data): void
-    {
-        if (null === $this->stream && \is_string($this->filename)) {
-            if (is_dir($this->filename)) {
-                throw new RuntimeException(sprintf(
-                    'Could not open log file "%s": is a directory',
-                    $this->filename
-                ));
-            }
-
-            $stream = fopen($this->filename, 'a');
-
-            if (false === $stream) {
-                throw new RuntimeException(sprintf(
-                    'Could not open log file "%s" for writing: fopen() failed',
-                    $this->filename
-                ));
-            }
-
-            $this->stream = $stream;
-        }
-
-        fwrite($this->stream, $data);
+        return $bytes;
     }
 
     /**
