@@ -30,6 +30,11 @@
         ],
         "phpstan": [
             "phpstan analyze --level max src"
+        ],
+        "test": [
+            "@phpunit",
+            "@cs-fixer",
+            "@phpstan"
         ]
     }
 }
