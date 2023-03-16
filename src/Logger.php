@@ -7,8 +7,6 @@ namespace Tomrf\Logger;
 use Psr\Log\AbstractLogger;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
-use RuntimeException;
-use Stringable;
 
 class Logger extends AbstractLogger implements LoggerInterface
 {
@@ -101,7 +99,7 @@ class Logger extends AbstractLogger implements LoggerInterface
      * @param mixed        $level
      * @param array<mixed> $context
      */
-    public function log($level, string|Stringable $message, array $context = []): void
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         if (!\in_array($level, self::LOG_LEVELS, true)) {
             throw new InvalidArgumentException(sprintf(
@@ -166,7 +164,7 @@ class Logger extends AbstractLogger implements LoggerInterface
      *
      * Returns number of bytes written, or -1 on error.
      *
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     private function writeToStream(string $data): int
     {
