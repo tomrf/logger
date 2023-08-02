@@ -2,7 +2,7 @@
     "name": "tomrf/logger",
     "type": "library",
     "provide": { "psr/logger-implementation": "^3.0" },
-    "description": "simple psr-3 logger supporting custom formatter and outputter",
+    "description": "minimalist psr-3 logger with support for custom formatter and outputter functions",
     "keywords": [ "psr-3", "log", "logger", "logger-implementation" ],
     "homepage": "http://github.com/tomrf/logger",
     "license": "MIT",
